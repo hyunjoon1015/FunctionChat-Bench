@@ -1,6 +1,7 @@
 import sys
 import json
 import openai
+import requests
 
 from mistralai.client import MistralClient
 from mistralai.exceptions import MistralAPIException
@@ -44,6 +45,39 @@ class AbstractModelAPIExecutor:
         Raises a NotImplementedError if called on an instance of this abstract class.
         """
         raise NotImplementedError("Subclasses must implement this method.")
+
+
+class VioletModelAPI(AbstractModelAPIExecutor):
+    def __init__(self, model, api_key, base_url):
+        self.headers = {
+            "Api-Key": api_key,
+            "Content-Type": "application/json"
+        }
+        self.model = model
+        self.url = base_url
+        self.session = requests.session()
+
+    def predict(self, api_request):
+        response = None
+        try_cnt = 0
+        while True:
+            try:
+                response = requests.post(
+                    self.url,
+                    data=api_request,
+                    headers=self.headers
+                )
+                response = response.json()
+            except Exception as e:
+                print(f".. retry api call .. {try_cnt}")
+                try_cnt += 1
+                print(e)
+                print(json.dumps(api_request['messages'], ensure_ascii=False))
+                continue
+            else:
+                break
+        return response
+
 
 
 class OpenaiModelAzureAPI(AbstractModelAPIExecutor):
@@ -473,5 +507,7 @@ class APIExecutorFactory:
             return MistralModelAPI(model_name, api_key)
         elif model_name.startswith('gemini'):  # Google developed model
             return GeminiModelAPI(model_name, gcloud_project_id=gcloud_project_id, gcloud_location=gcloud_location)
+        elif model_name.startswith('Exaone'):
+            return VioletModelAPI(model_name, api_key, base_url)
         else:
             raise ValueError("Unsupported model name")
