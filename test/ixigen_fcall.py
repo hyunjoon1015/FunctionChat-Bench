@@ -2,9 +2,9 @@ import requests
 import json
 
 def make_message(system_prompt, user_prompt):
-    message = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n"
+    message = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n"
     message += system_prompt
-    message += "<|eot_id|><|start_header_id|>user<|end_header_id|>\n"
+    message += "\n<|start_header_id|>user<|end_header_id|>\n"
     message += user_prompt
     message += "<|start_header_id|>assistant<|end_header_id|>\n\n"
     return message
@@ -29,7 +29,7 @@ def main():
     Answer should be following format:
     {"tool_name": selected tool name to use, "parameters": generated arguments to use selected tool.}
     """
-    user_prompt = "오늘 용산 날씨 알려줘."
+    user_prompt = "마곡사옥에서 용산사옥 가는 길을 알려줘."
 
     message = make_message(system_prompt, user_prompt)
     request_message = {
