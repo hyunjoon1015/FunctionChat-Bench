@@ -173,7 +173,7 @@ class ixiGenModelAPI(AbstractModelAPIExecutor):
                 {
                     "function": {
                         "name": None if function_response == None else function_response.get("tool_name", None),
-                        "arguments": None if function_response == None else function_response.get("arguments", None)
+                        "arguments": None if function_response == None else json.dumps(function_response.get("arguments", None))
                     }
                 }
             ]
