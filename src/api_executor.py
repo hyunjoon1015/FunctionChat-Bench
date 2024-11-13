@@ -48,6 +48,45 @@ class AbstractModelAPIExecutor:
         raise NotImplementedError("Subclasses must implement this method.")
 
 
+class ExaoneModelAPI(AbstractModelAPIExecutor):
+    def __init__(self, model, api_key, base_url):
+        self.headers = {
+            "Content-Type": "application/json",
+            "Api-Key": api_key
+        }
+        self.model = model
+        self.url = base_url
+
+    def make_request(self, messages, tools):
+        req = {
+            "messages": []
+        }
+        for content in messages:
+            req["messages"].append(content)
+        return req
+
+    def predict(self, api_request):
+        response = None
+        try_cnt = 0
+        while True:
+            try:
+                response = requests.post(
+                    self.url,
+                    json=self.make_request(api_request['messages'], api_request['tools']),
+                    headers=self.headers
+                )
+                response = response.json()
+            except Exception as e:
+                print(f".. retry api call .. {try_cnt}")
+                try_cnt += 1
+                print(e)
+                print(json.dumps(api_request['messages'], ensure_ascii=False))
+                continue
+            else:
+                break
+        return response
+
+
 class ixiGenModelAPI(AbstractModelAPIExecutor):
     def __init__(self, model, api_key, base_url):
         self.headers = {
@@ -577,7 +616,7 @@ class APIExecutorFactory:
         elif model_name.startswith('gemini'):  # Google developed model
             return GeminiModelAPI(model_name, gcloud_project_id=gcloud_project_id, gcloud_location=gcloud_location)
         elif model_name.startswith('Exaone'):
-            return VioletModelAPI(model_name, api_key, base_url)
+            return ExaoneModelAPI(model_name, api_key, base_url)
         elif model_name.startswith('ixi-Gen'):
             return ixiGenModelAPI(model_name, api_key, base_url)
         else:
