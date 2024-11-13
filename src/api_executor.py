@@ -108,12 +108,10 @@ class ixiGenModelAPI(AbstractModelAPIExecutor):
         Answer the following questions as best you can. You have access to the following tools:
         {self.make_function_call(tools)}\n"""
         data += """
-        Please answer the following questions based on the available tools at your disposal. Your response should be structured in the following JSON format:
-        {
-            "tool_name": "name of the selected tool",  // The tool chosen to process the request.
-            "arguments": { "key": "value" }  // The arguments required for the selected tool.
-        }
+        When responding to me, please output a response in this format:
+        {"tool_name": "The tool chosen to process the request", "arguments": {"key": "value"}  // The arguments required for the selected tool.}
         Make sure the arguments are correctly generated based on the question, and specify the appropriate tool for the task at hand.
+        Don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous.
         """
 
         for message in messages:
