@@ -95,12 +95,30 @@ class ixiGenModelAPI(AbstractModelAPIExecutor):
         self.url = base_url
         self.api_key = api_key
 
+    def make_function_call(self, tools):
+        result = ""
+        for tool in tools:
+            result += f"{tool}\n"
+        return result
+
     def make_request(self, messages, tools):
         data = "<|begin_of_text|>"
+        data += "<|start_header_id|>system<|end_header_id|>\n"
+        data += f"""
+        Answer the following questions as best you can. You have access to the following tools:
+        {self.make_function_call(tools)}\n"""
+        data += """
+        When responding to me, please output a response in this format:
+        {"tool_name": "The tool chosen to process the request", "arguments": {"key": "value"}  // The arguments required for the selected tool.}
+        Make sure the arguments are correctly generated based on the question, and specify the appropriate tool for the task at hand.
+        Don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous.
+        """
+
         for message in messages:
             role = message['role']
             content = message['content']
             data += f"<|start_header_id|>{role}<|end_header_id|>\n{content}\n\n"
+        
         data += "<|start_header_id|>assistant<|end_header_id|>\n\n"
         req = {
             "text_input": data,
