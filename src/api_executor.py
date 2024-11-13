@@ -1,3 +1,4 @@
+import re
 import sys
 import json
 import openai
@@ -95,6 +96,20 @@ class ixiGenModelAPI(AbstractModelAPIExecutor):
         self.url = base_url
         self.api_key = api_key
 
+    def split_json_from_message(self, message):
+        json_pattern = r'\{.*\}'
+        match = re.search(json_pattern, message)
+        if match:
+            json_str = match.group(0)
+            non_json_text = message[:match.start()] + message[match.end():]
+            try:
+                parsed_json = json.loads(json_str)
+                return non_json_text, parsed_json
+            except json.JSONDecodeError:
+                return message, None
+        else:
+            return message, None
+
     def make_function_call(self, tools):
         result = ""
         for tool in tools:
@@ -148,6 +163,21 @@ class ixiGenModelAPI(AbstractModelAPIExecutor):
                 continue
             else:
                 break
+        text_message, function_response = self.split_json_from_message(response["text_output"])
+        response = {
+            "message": {
+                "role": "assistant",
+                "content": text_message
+            },
+            "tool_calls": [
+                {
+                    "function": {
+                        "name": None if function_response == None else function_response.get("tool_name", None),
+                        "arguments": None if function_response == None else function_response.get("arguments", None)
+                    }
+                }
+            ]
+        }
         return response
 
 
