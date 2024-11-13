@@ -48,38 +48,6 @@ class AbstractModelAPIExecutor:
         raise NotImplementedError("Subclasses must implement this method.")
 
 
-class VioletModelAPI(AbstractModelAPIExecutor):
-    def __init__(self, model, api_key, base_url):
-        self.headers = {
-            "Api-Key": api_key,
-            "Content-Type": "application/json"
-        }
-        self.model = model
-        self.url = base_url
-        self.session = requests.session()
-
-    def predict(self, api_request):
-        response = None
-        try_cnt = 0
-        while True:
-            try:
-                response = requests.post(
-                    self.url,
-                    data=api_request,
-                    headers=self.headers
-                )
-                response = response.json()
-            except Exception as e:
-                print(f".. retry api call .. {try_cnt}")
-                try_cnt += 1
-                print(e)
-                print(json.dumps(api_request['messages'], ensure_ascii=False))
-                continue
-            else:
-                break
-        return response
-
-
 class ixiGenModelAPI(AbstractModelAPIExecutor):
     def __init__(self, model, api_key, base_url):
         self.headers = {
