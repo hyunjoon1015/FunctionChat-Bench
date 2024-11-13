@@ -48,15 +48,22 @@ class AbstractModelAPIExecutor:
         raise NotImplementedError("Subclasses must implement this method.")
 
 
-class VioletModelAPI(AbstractModelAPIExecutor):
+class ExaoneModelAPI(AbstractModelAPIExecutor):
     def __init__(self, model, api_key, base_url):
         self.headers = {
-            "Api-Key": api_key,
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Api-Key": api_key
         }
         self.model = model
         self.url = base_url
-        self.session = requests.session()
+
+    def make_request(self, messages, tools):
+        req = {
+            "messages": []
+        }
+        for content in messages:
+            req["messages"].append(content)
+        return req
 
     def predict(self, api_request):
         response = None
@@ -65,7 +72,7 @@ class VioletModelAPI(AbstractModelAPIExecutor):
             try:
                 response = requests.post(
                     self.url,
-                    data=api_request,
+                    json=self.make_request(api_request['messages'], api_request['tools']),
                     headers=self.headers
                 )
                 response = response.json()
@@ -609,7 +616,7 @@ class APIExecutorFactory:
         elif model_name.startswith('gemini'):  # Google developed model
             return GeminiModelAPI(model_name, gcloud_project_id=gcloud_project_id, gcloud_location=gcloud_location)
         elif model_name.startswith('Exaone'):
-            return VioletModelAPI(model_name, api_key, base_url)
+            return ExaoneModelAPI(model_name, api_key, base_url)
         elif model_name.startswith('ixi-Gen'):
             return ixiGenModelAPI(model_name, api_key, base_url)
         else:
