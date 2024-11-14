@@ -80,11 +80,11 @@ class ExaoneModelAPI(AbstractModelAPIExecutor):
     def make_request(self, messages, tools):
         function_call_prompt = f"""
         Answer the following questions as best you can. You have access to the following tools:
-        When responding to me, please output a response in this format:
         {self.make_function_call(tools)}\n
         """
         function_call_prompt += """
-        {"tool_name": "The tool chosen to process the request", "arguments": {"key": "value"}  // The arguments required for the selected tool.}
+        When responding to me, please output a response in this format:
+        {"tool_name": "The tool chosen to process the request", "arguments": {"key": "value"}  // The arguments required for the selected tool. If tool doesn't need arguments just return empty dict.}
         Make sure the arguments are correctly generated based on the question, and specify the appropriate tool for the task at hand.
         Don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous.
         """
@@ -111,7 +111,7 @@ class ExaoneModelAPI(AbstractModelAPIExecutor):
                     headers=self.headers
                 )
                 response = response.json()
-                response = response["response"].split("[|endofturn|]")[-1].split("[|assistant|]")[-1]
+                response = response["response"].split("[|endofturn|]")[-2].split("[|assistant|]")[-1]
                 text_message, function_response = self.split_json_from_message(response)
             except Exception as e:
                 print(f".. retry api call .. {try_cnt}")
