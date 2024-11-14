@@ -57,9 +57,44 @@ class ExaoneModelAPI(AbstractModelAPIExecutor):
         self.model = model
         self.url = base_url
 
+    def split_json_from_message(self, message):
+        json_pattern = r'\{.*\}'
+        match = re.search(json_pattern, message)
+        if match:
+            json_str = match.group(0)
+            non_json_text = message[:match.start()] + message[match.end():]
+            try:
+                parsed_json = json.loads(json_str)
+                return non_json_text, parsed_json
+            except json.JSONDecodeError:
+                return message, None
+        else:
+            return message, None
+
+    def make_function_call(self, tools):
+        result = ""
+        for tool in tools:
+            result += f"{tool}\n"
+        return result
+
     def make_request(self, messages, tools):
+        function_call_prompt = f"""
+        Answer the following questions as best you can. You have access to the following tools:
+        When responding to me, please output a response in this format:
+        {self.make_function_call(tools)}\n
+        """
+        function_call_prompt += """
+        {"tool_name": "The tool chosen to process the request", "arguments": {"key": "value"}  // The arguments required for the selected tool.}
+        Make sure the arguments are correctly generated based on the question, and specify the appropriate tool for the task at hand.
+        Don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous.
+        """
         req = {
-            "messages": []
+            "messages": [
+                {
+                    "role": "system",
+                    "content": function_call_prompt
+                }
+            ]
         }
         for content in messages:
             req["messages"].append(content)
@@ -76,6 +111,8 @@ class ExaoneModelAPI(AbstractModelAPIExecutor):
                     headers=self.headers
                 )
                 response = response.json()
+                response = response["response"].split("[|endofturn|]")[-1].split("[|assistant|]")[-1]
+                text_message, function_response = self.split_json_from_message(response)
             except Exception as e:
                 print(f".. retry api call .. {try_cnt}")
                 try_cnt += 1
@@ -84,6 +121,20 @@ class ExaoneModelAPI(AbstractModelAPIExecutor):
                 continue
             else:
                 break
+        response = {
+            "message": {
+                "role": "assistant",
+                "content": text_message
+            },
+            "tool_calls": [
+                {
+                    "function": {
+                        "name": None if function_response == None else function_response.get("tool_name", None),
+                        "arguments": None if function_response == None else json.dumps(function_response.get("arguments", None))
+                    }
+                }
+            ]
+        }
         return response
 
 
